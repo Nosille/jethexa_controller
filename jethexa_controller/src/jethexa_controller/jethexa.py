@@ -4,7 +4,7 @@ import sys
 import os
 import time
 import rospy
-import kinematics
+# import kinematics
 import math
 import threading
 import itertools
@@ -16,6 +16,7 @@ from jethexa_sdk import pwm_servo, serial_servo
 from .moving_controller import MovingGenerator, MovingParams, CmdVelGenerator, CmdVelParams
 from .pose_transformer import PoseTransformer, PoseTransformerParams
 import geometry_msgs.msg
+import legged_robot_kinematics as leg_kinematics
 
 X1 = 93.60
 Y1 = 50.805
@@ -29,6 +30,8 @@ class JetHexa:
     
     def __init__(self, node, pwm=True):
         self.node = node
+        legs = ["LF", "LM", "LR", "RF", "RM", "RR"]
+        self.bot = leg_kinematics.Bot("jethexa", "body_link", legs)
         if pwm:
             pwm_servo.pwm_servo1.start()
             pwm_servo.pwm_servo2.start()
@@ -251,7 +254,8 @@ class JetHexa:
         :param update_pose: 是否更新类成员pose, 此成员记录了机器人的当前姿态
         :return: 末端位置对应的舵机角度（里(id, 角度）， 中(id, 角度）， 外）, 角度为0-1000的数值
         """
-        joints = kinematics.set_leg_position(leg_id, position)  # calculate each servo angle coresponding to new foothold position
+        # joints = kinematics.set_leg_position(leg_id, position)  # calculate each servo angle coresponding to new foothold position
+        joints = self.bot.set_leg_position(leg_id, position)
         joints_id_radians = zip([(leg_id - 1) * 3 + i + 1 for i, s in enumerate(joints)], joints)
         if not pseudo:
             for joint_id, rad in joints_id_radians:

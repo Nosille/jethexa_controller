@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_srvs
   jethexa_controller_interfaces
   jethexa_sdk
+  legged_bot_kinematics
 )
 
 ## System dependencies are found with CMake's conventions
