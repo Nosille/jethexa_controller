@@ -35,7 +35,7 @@ SERVOS = {
         'type': ServoType.BUS,
         'direction': -1,
         'max_radians': math.radians(240),
-        'offset': math.radians(0),
+        'offset': math.radians(21),
     },
     3: {
         'name': 'tibia_joint_LF',
@@ -45,7 +45,7 @@ SERVOS = {
         'type': ServoType.BUS,
         'direction': -1,
         'max_radians': math.radians(240),
-        'offset': math.radians(0),
+        'offset': math.radians(-25),
     },
     4: {
         'name': 'coxa_joint_LM',
@@ -65,7 +65,7 @@ SERVOS = {
         'type': ServoType.BUS,
         'direction': -1,
         'max_radians': math.radians(240),
-        'offset': math.radians(0),
+        'offset': math.radians(21),
     },
     6: {
         'name': 'tibia_joint_LM',
@@ -75,7 +75,7 @@ SERVOS = {
         'type': ServoType.BUS,
         'direction': -1,
         'max_radians': math.radians(240),
-        'offset': math.radians(0),
+        'offset': math.radians(-25),
     },
     7: {
         'name': 'coxa_joint_LR',
@@ -95,7 +95,7 @@ SERVOS = {
         'type': ServoType.BUS,
         'direction': -1,
         'max_radians': math.radians(240),
-        'offset': math.radians(0),
+        'offset': math.radians(21),
     },
     9: {
         'name': 'tibia_joint_LR',
@@ -105,7 +105,7 @@ SERVOS = {
         'type': ServoType.BUS,
         'direction': -1,
         'max_radians': math.radians(240),
-        'offset': math.radians(0),
+        'offset': math.radians(-25),
     },
     10: {
         'name': 'coxa_joint_RR',
@@ -125,7 +125,7 @@ SERVOS = {
         'type': ServoType.BUS,
         'direction': 1,
         'max_radians': math.radians(240),
-        'offset': math.radians(0),
+        'offset': math.radians(21),
     },
     12: {
         'name': 'tibia_joint_RR',
@@ -135,7 +135,7 @@ SERVOS = {
         'type': ServoType.BUS,
         'direction': 1,
         'max_radians': math.radians(240),
-        'offset': math.radians(0),
+        'offset': math.radians(-25),
     },
     13: {
         'name': 'coxa_joint_RM',
@@ -155,7 +155,7 @@ SERVOS = {
         'type': ServoType.BUS,
         'direction': 1,
         'max_radians': math.radians(240),
-        'offset': math.radians(0),
+        'offset': math.radians(21),
     },
     15: {
         'name': 'tibia_joint_RM',
@@ -165,7 +165,7 @@ SERVOS = {
         'type': ServoType.BUS,
         'direction': 1,
         'max_radians': math.radians(240),
-        'offset': math.radians(0),
+        'offset': math.radians(-25),
     },
     16: {
         'name': 'coxa_joint_RF',
@@ -185,7 +185,7 @@ SERVOS = {
         'type': ServoType.BUS,
         'direction': 1,
         'max_radians': math.radians(240),
-        'offset': math.radians(0),
+        'offset': math.radians(21),
     },
     18: {
         'name': 'tibia_joint_RF',
@@ -195,7 +195,7 @@ SERVOS = {
         'type': ServoType.BUS,
         'direction': 1,
         'max_radians': math.radians(240),
-        'offset': math.radians(0),
+        'offset': math.radians(-25),
     },
     19: {
         'name': 'head_pan_joint',
