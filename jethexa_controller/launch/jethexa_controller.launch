@@ -3,6 +3,7 @@
 	<arg name="tf_prefix" default="" />
 	<arg name="tf_enable" default="false" />
 	<arg name="odom_enable" default="true" />
+	<rosparam command="load" file="$(find jethexa_controller)/config/pwm_servo_offset.yaml" />
 
 	<node name="jethexa_controller" 
 		  pkg="jethexa_controller" 

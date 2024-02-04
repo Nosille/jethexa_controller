@@ -1,4 +1,4 @@
-# jethexa.py completes the underlying logic of the motion control of the robot
+# jethexa.py 完成机器人的运动控制的底层逻辑
 
 import sys
 import os
@@ -16,6 +16,10 @@ from jethexa_sdk import pwm_servo, serial_servo
 from .moving_controller import MovingGenerator, MovingParams, CmdVelGenerator, CmdVelParams
 from .pose_transformer import PoseTransformer, PoseTransformerParams
 import geometry_msgs.msg
+import std_msgs.msg
+import yaml
+import std_srvs.srv
+import rospkg
 
 X1 = 93.60
 Y1 = 50.805
@@ -27,11 +31,13 @@ class JetHexa:
     TRIPOD_GAIT = 1
     RIPPLE_GAIT = 2
     
-    def __init__(self, node, pwm=True):
+    def __init__(self, node, pwm=True, pwm_service=False):
         self.node = node
+
         if pwm:
             pwm_servo.pwm_servo1.start()
             pwm_servo.pwm_servo2.start()
+
         self.joints_state = {}
 
         for value in config.SERVOS.values():
@@ -65,11 +71,50 @@ class JetHexa:
         self.cmd_height = 20
         self.cmd_period = 1.0
 
+        offset1 = rospy.get_param("/pwm_servo_offset/offset_1", 0);
+        offset2 = rospy.get_param("/pwm_servo_offset/offset_2", 0);
+
+        if offset1 == 0:
+            rospy.set_param("/pwm_servo_offset/offset_1", 0)
+        if offset2 == 0:
+            rospy.set_param("/pwm_servo_offset/offset_2", 0)
+
+        pwm_servo.pwm_servo1.set_deviation(offset1)
+        pwm_servo.pwm_servo2.set_deviation(offset2)
+
+
+        self.set_offset_dev = rospy.Subscriber("/set_pwm_offset", std_msgs.msg.Int16MultiArray, self.set_pwm_offset_cb)
+        if pwm_service:
+            self.save_offset_srv = rospy.Service("/save_pwm_offset", std_srvs.srv.Trigger, self.save_offset_cb)
+
         self.voltage_timer = time.time()
         self.loop_thread = threading.Thread(target=self.loop, daemon=True)
         self.loop_enable = True
         self.loop_thread.start()
 
+    def save_offset_cb(self, req):
+        offset = rospy.get_param("/pwm_servo_offset", {"offset_1": 0, "offset_2": 0})
+        cf = {"pwm_servo_offset": offset}
+        with open(os.path.join(rospkg.RosPack().get_path("jethexa_controller"), 'config/pwm_servo_offset.yaml'),'w') as f:
+            f.write(yaml.dump(cf, default_flow_style=True))
+        return std_srvs.srv.TriggerResponse(success=True)
+
+    def set_pwm_offset_cb(self, msg):
+        sid = msg.data[0]
+        dev = msg.data[1]
+        if dev > 300:
+            dev = 300
+        if dev < -300:
+            dev = -300
+
+        if sid == 0:
+            pwm_servo.pwm_servo1.set_deviation(dev)
+            rospy.set_param("/pwm_servo_offset/offset_1", dev)
+        elif sid == 1:
+            pwm_servo.pwm_servo2.set_deviation(dev)
+            rospy.set_param("/pwm_servo_offset/offset_2", dev)
+        else:
+            pass
 
     def reset_all_new_gen(self):
         self.new_pose_setter = None
