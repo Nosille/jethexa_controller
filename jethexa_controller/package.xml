@@ -29,6 +29,7 @@
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>std_srvs</exec_depend>
   <depend>jethexa_controller_interfaces</depend>
+  <depend>legged_bot_kinematics</depend>
   <depend>jethexa_sdk</depend>
 
 

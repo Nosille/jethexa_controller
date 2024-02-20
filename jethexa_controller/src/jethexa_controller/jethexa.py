@@ -20,6 +20,8 @@ import std_msgs.msg
 import yaml
 import std_srvs.srv
 import rospkg
+import leg_kinematics
+import numpy as np
 
 X1 = 93.60
 Y1 = 50.805
@@ -33,6 +35,17 @@ class JetHexa:
     
     def __init__(self, node, pwm=True, pwm_service=False):
         self.node = node
+
+        legIds = ["LF", "LM", "LR", "RF", "RM", "RR"]
+        origins = [np.array([ 0.09360, 0.050805, 0.0, math.pi*1/4]), 
+                np.array([ 0.00000, 0.073535, 0.0, math.pi*1/2]), 
+                np.array([-0.09360, 0.050805, 0.0, math.pi*3/4]), 
+                np.array([ 0.09360,-0.050805, 0.0, math.pi*7/4]), 
+                np.array([ 0.00000,-0.073535, 0.0, math.pi*3/2]), 
+                np.array([-0.09360,-0.050805, 0.0, math.pi*5/4])] 
+        legLengths = np.array([0.0450503, 0.07703, 0.123, 0.000])
+        
+        self.bot = leg_kinematics.Bot("jethexa", origins, legIds, legLengths)
 
         if pwm:
             pwm_servo.pwm_servo1.start()
@@ -296,7 +309,16 @@ class JetHexa:
         :param update_pose: 是否更新类成员pose, 此成员记录了机器人的当前姿态
         :return: 末端位置对应的舵机角度（里(id, 角度）， 中(id, 角度）， 外）, 角度为0-1000的数值
         """
+        
+        rospy.logerr("")
+        rospy.logerr(position)
+        positionM= tuple([x/1000 for x in position])
+        rospy.logerr(positionM)        
+        jointsM = self.bot.setLegPosition(leg_id-1, positionM)
+        joints = tuple([jointsM[0], jointsM[1], jointsM[2] + math.pi / 2])
+        rospy.logerr(joints)
         joints = kinematics.set_leg_position(leg_id, position)  # calculate each servo angle coresponding to new foothold position
+        rospy.logwarn(joints)
         joints_id_radians = zip([(leg_id - 1) * 3 + i + 1 for i, s in enumerate(joints)], joints)
         if not pseudo:
             for joint_id, rad in joints_id_radians:
