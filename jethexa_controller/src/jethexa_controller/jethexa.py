@@ -1,10 +1,10 @@
-# jethexa.py completes the underlying logic of the motion control of the robot
+# jethexa.py 完成机器人的运动控制的底层逻辑
 
 import sys
 import os
 import time
 import rospy
-# import kinematics
+import kinematics
 import math
 import threading
 import itertools
@@ -16,7 +16,12 @@ from jethexa_sdk import pwm_servo, serial_servo
 from .moving_controller import MovingGenerator, MovingParams, CmdVelGenerator, CmdVelParams
 from .pose_transformer import PoseTransformer, PoseTransformerParams
 import geometry_msgs.msg
-import legged_robot_kinematics as leg_kinematics
+import std_msgs.msg
+import yaml
+import std_srvs.srv
+import rospkg
+import leg_kinematics
+import numpy as np
 
 X1 = 93.60
 Y1 = 50.805
@@ -28,13 +33,24 @@ class JetHexa:
     TRIPOD_GAIT = 1
     RIPPLE_GAIT = 2
     
-    def __init__(self, node, pwm=True):
+    def __init__(self, node, pwm=True, pwm_service=False):
         self.node = node
-        legs = ["LF", "LM", "LR", "RF", "RM", "RR"]
-        self.bot = leg_kinematics.Bot("jethexa", "body_link", legs)
+
+        legIds = ["LF", "LM", "LR", "RF", "RM", "RR"]
+        origins = [np.array([ 0.09360, 0.050805, 0.0, math.pi*1/4]), 
+                np.array([ 0.00000, 0.073535, 0.0, math.pi*1/2]), 
+                np.array([-0.09360, 0.050805, 0.0, math.pi*3/4]), 
+                np.array([ 0.09360,-0.050805, 0.0, math.pi*7/4]), 
+                np.array([ 0.00000,-0.073535, 0.0, math.pi*3/2]), 
+                np.array([-0.09360,-0.050805, 0.0, math.pi*5/4])] 
+        legLengths = np.array([0.0450503, 0.07703, 0.123, 0.000])
+        
+        self.bot = leg_kinematics.Bot("jethexa", origins, legIds, legLengths)
+
         if pwm:
             pwm_servo.pwm_servo1.start()
             pwm_servo.pwm_servo2.start()
+
         self.joints_state = {}
 
         for value in config.SERVOS.values():
@@ -68,11 +84,50 @@ class JetHexa:
         self.cmd_height = 20
         self.cmd_period = 1.0
 
+        offset1 = rospy.get_param("/pwm_servo_offset/offset_1", 0);
+        offset2 = rospy.get_param("/pwm_servo_offset/offset_2", 0);
+
+        if offset1 == 0:
+            rospy.set_param("/pwm_servo_offset/offset_1", 0)
+        if offset2 == 0:
+            rospy.set_param("/pwm_servo_offset/offset_2", 0)
+
+        pwm_servo.pwm_servo1.set_deviation(offset1)
+        pwm_servo.pwm_servo2.set_deviation(offset2)
+
+
+        self.set_offset_dev = rospy.Subscriber("/set_pwm_offset", std_msgs.msg.Int16MultiArray, self.set_pwm_offset_cb)
+        if pwm_service:
+            self.save_offset_srv = rospy.Service("/save_pwm_offset", std_srvs.srv.Trigger, self.save_offset_cb)
+
         self.voltage_timer = time.time()
         self.loop_thread = threading.Thread(target=self.loop, daemon=True)
         self.loop_enable = True
         self.loop_thread.start()
 
+    def save_offset_cb(self, req):
+        offset = rospy.get_param("/pwm_servo_offset", {"offset_1": 0, "offset_2": 0})
+        cf = {"pwm_servo_offset": offset}
+        with open(os.path.join(rospkg.RosPack().get_path("jethexa_controller"), 'config/pwm_servo_offset.yaml'),'w') as f:
+            f.write(yaml.dump(cf, default_flow_style=True))
+        return std_srvs.srv.TriggerResponse(success=True)
+
+    def set_pwm_offset_cb(self, msg):
+        sid = msg.data[0]
+        dev = msg.data[1]
+        if dev > 300:
+            dev = 300
+        if dev < -300:
+            dev = -300
+
+        if sid == 0:
+            pwm_servo.pwm_servo1.set_deviation(dev)
+            rospy.set_param("/pwm_servo_offset/offset_1", dev)
+        elif sid == 1:
+            pwm_servo.pwm_servo2.set_deviation(dev)
+            rospy.set_param("/pwm_servo_offset/offset_2", dev)
+        else:
+            pass
 
     def reset_all_new_gen(self):
         self.new_pose_setter = None
@@ -254,8 +309,16 @@ class JetHexa:
         :param update_pose: 是否更新类成员pose, 此成员记录了机器人的当前姿态
         :return: 末端位置对应的舵机角度（里(id, 角度）， 中(id, 角度）， 外）, 角度为0-1000的数值
         """
-        # joints = kinematics.set_leg_position(leg_id, position)  # calculate each servo angle coresponding to new foothold position
-        joints = self.bot.set_leg_position(leg_id, position)
+        
+        rospy.logerr("")
+        rospy.logerr(position)
+        positionM= tuple([x/1000 for x in position])
+        rospy.logerr(positionM)        
+        jointsM = self.bot.setLegPosition(leg_id-1, positionM)
+        joints = tuple([jointsM[0], jointsM[1], jointsM[2] + math.pi / 2])
+        rospy.logerr(joints)
+        joints = kinematics.set_leg_position(leg_id, position)  # calculate each servo angle coresponding to new foothold position
+        rospy.logwarn(joints)
         joints_id_radians = zip([(leg_id - 1) * 3 + i + 1 for i, s in enumerate(joints)], joints)
         if not pseudo:
             for joint_id, rad in joints_id_radians:

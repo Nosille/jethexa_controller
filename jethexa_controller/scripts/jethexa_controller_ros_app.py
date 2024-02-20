@@ -26,7 +26,7 @@ class jethexaControlNode:
         self.tf_prefix = rospy.get_param('~tf_prefix', '')
         self.tf_prefix = (self.tf_prefix + '/') if self.tf_prefix != '' else '' 
 
-        self.controller = jethexa.JetHexa(self)
+        self.controller = jethexa.JetHexa(self, pwm_service=True)
 
         # publish the status of the robot
         self.voltage_publisher = VoltagePublisher(node=self, rate=1)  # publish the bus voltage

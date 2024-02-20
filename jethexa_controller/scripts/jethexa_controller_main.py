@@ -17,6 +17,7 @@ from jethexa_controller import jethexa, build_in_pose, config
 from jethexa_controller.z_voltage_publisher import VoltagePublisher
 from jethexa_controller.z_joint_states_publisher import JointStatesPublisher
 import geometry_msgs.msg
+import std_msgs.msg
 
 
 class jethexaControlNode:
@@ -26,7 +27,7 @@ class jethexaControlNode:
         self.tf_prefix = rospy.get_param('~tf_prefix', '')
         self.tf_prefix = (self.tf_prefix + '/') if self.tf_prefix != '' else '' 
 
-        self.controller = jethexa.JetHexa(self)
+        self.controller = jethexa.JetHexa(self, pwm_service=True)
 
         # publish the status of the robot
         self.voltage_publisher = VoltagePublisher(node=self, rate=1)  # publish the bus voltage
