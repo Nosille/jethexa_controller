@@ -61,7 +61,7 @@ def wave(self):
         rospy.sleep(0.8)
         # Gradually speed up and increase the swing
         for j in range(7, 20, 2):
-            i = 90 
+            i = 90 # i is an angle in degrees
             j = min(15, j)
             while i <= 360 + 85 and not self.stopping: 
                 if i == 90 and j == 7:

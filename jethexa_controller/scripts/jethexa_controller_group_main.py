@@ -270,7 +270,7 @@ class jethexaControlNode:
 
     def run_action_set_sub_cb(self, msg: jetmsg.RunActionSet):
         rospy.loginfo("{}, {}".format(msg.action_path, msg.repeat))
-        file_path = '/home/hiwonder/ActionSets/' + msg.action_path if msg.default_path else msg.action_path
+        file_path = '/home/jetson/ActionSets/' + msg.action_path if msg.default_path else msg.action_path
         self.controller.run_action_set(file_path, msg.repeat)
 
 

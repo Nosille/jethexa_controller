@@ -36,16 +36,27 @@ class JetHexa:
     def __init__(self, node, pwm=True, pwm_service=False):
         self.node = node
 
-        legIds = ["LF", "LM", "LR", "RF", "RM", "RR"]
-        origins = [np.array([ 0.09360, 0.050805, 0.0, math.pi*1/4]), 
-                np.array([ 0.00000, 0.073535, 0.0, math.pi*1/2]), 
-                np.array([-0.09360, 0.050805, 0.0, math.pi*3/4]), 
-                np.array([ 0.09360,-0.050805, 0.0, math.pi*7/4]), 
-                np.array([ 0.00000,-0.073535, 0.0, math.pi*3/2]), 
-                np.array([-0.09360,-0.050805, 0.0, math.pi*5/4])] 
-        legLengths = np.array([0.0450503, 0.07703, 0.123, 0.000])
+        legIds = ["LF", "LM", "LR", "RR", "RM", "RF"]
+        origins = [np.array([ 0.09360, 0.050805, 0.0]), 
+                   np.array([ 0.00000, 0.073535, 0.0]), 
+                   np.array([-0.09360, 0.050805, 0.0]), 
+                   np.array([-0.09360,-0.050805, 0.0]), 
+                   np.array([ 0.00000,-0.073535, 0.0]), 
+                   np.array([ 0.09360,-0.050805, 0.0])] 
+        legLengths = [np.array([0.0450503, 0.07703, 0.123, 0.000]),
+                      np.array([0.0450503, 0.07703, 0.123, 0.000]),
+                      np.array([0.0450503, 0.07703, 0.123, 0.000]),
+                      np.array([0.0450503, 0.07703, 0.123, 0.000]),
+                      np.array([0.0450503, 0.07703, 0.123, 0.000]),
+                      np.array([0.0450503, 0.07703, 0.123, 0.000])]
+        jointOffsets = [np.array([+math.pi*1/4, 0.0, -math.pi/2, 0.0]), 
+                        np.array([+math.pi*2/4, 0.0, -math.pi/2, 0.0]), 
+                        np.array([+math.pi*3/4, 0.0, -math.pi/2, 0.0]), 
+                        np.array([+math.pi*5/4, 0.0, -math.pi/2, 0.0]), 
+                        np.array([+math.pi*6/4, 0.0, -math.pi/2, 0.0]), 
+                        np.array([+math.pi*7/4, 0.0, -math.pi/2, 0.0])]         
         
-        self.bot = leg_kinematics.Bot("jethexa", origins, legIds, legLengths)
+        self.bot = leg_kinematics.Bot("jethexa", origins, legIds, legLengths, jointOffsets)
 
         if pwm:
             pwm_servo.pwm_servo1.start()
@@ -298,6 +309,19 @@ class JetHexa:
         if callable(callback):
             callback()
 
+    def calc_joint_angles(self, leg_id, position):
+        # rospy.logwarn("")
+        # rospy.logwarn(leg_id)
+        # rospy.logwarn(position)
+        # positionM= tuple([x/1000 for x in position])
+        # rospy.logerr(positionM)        
+        # jointsM = self.bot.setLegPosition(leg_id-1, positionM)
+        # joints = tuple([jointsM[0], jointsM[1], jointsM[2]])
+        # rospy.logerr(joints)
+        angles = kinematics.set_leg_position(leg_id, position)  # calculate each servo angle coresponding to new foothold position
+        # rospy.logwarn(angles) 
+        return angles       
+
     def set_leg_position(self, leg_id, position, duration, pseudo=False, update_pose=False):
         """
         根据输入的指定的腿及末端位置， 计算、设置舵机角度
@@ -310,15 +334,7 @@ class JetHexa:
         :return: 末端位置对应的舵机角度（里(id, 角度）， 中(id, 角度）， 外）, 角度为0-1000的数值
         """
         
-        rospy.logerr("")
-        rospy.logerr(position)
-        positionM= tuple([x/1000 for x in position])
-        rospy.logerr(positionM)        
-        jointsM = self.bot.setLegPosition(leg_id-1, positionM)
-        joints = tuple([jointsM[0], jointsM[1], jointsM[2] + math.pi / 2])
-        rospy.logerr(joints)
-        joints = kinematics.set_leg_position(leg_id, position)  # calculate each servo angle coresponding to new foothold position
-        rospy.logwarn(joints)
+        joints = self.calc_joint_angles(leg_id, position)  # calculate each servo angle coresponding to new foothold position
         joints_id_radians = zip([(leg_id - 1) * 3 + i + 1 for i, s in enumerate(joints)], joints)
         if not pseudo:
             for joint_id, rad in joints_id_radians:
@@ -354,7 +370,7 @@ class JetHexa:
         :param pseudo: 是否真的控制舵机运动， 若为True则只计算并设置相应变量而不真正发送控制指令给舵机
         :return: None
         """
-        joints = [kinematics.set_leg_position(i + 1, position) for i, position in enumerate(new_pose)]
+        joints = [self.calc_joint_angles(i + 1, position) for i, position in enumerate(new_pose)]
         joints = list(itertools.chain.from_iterable(joints))
         joints_data = [[j, r, duration] for j, r in zip(list(range(1, 19)), joints)]
         if not pseudo:
@@ -533,6 +549,7 @@ class JetHexa:
 
 
     def run_action_set(self, file, repeat=1, interrupt=True):
+        rospy.logwarn(file)
         runner = actionset_runner(self, file, repeat)
         if runner:
             with self.lock:
